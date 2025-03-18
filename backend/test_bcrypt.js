@@ -1,14 +1,18 @@
-import bcrypt from "bcryptjs";
+import mongoose from 'mongoose';
+import Employee from './models/Employee.js'; // Adjust path as needed
 
-// Simulate fetching the stored hash from MongoDB
-const storedHash = "$2a$10$3eXGwiC6qYDQzv9pvqjFzOUV6cZDQFf3yjwkqPy8AWZIKUc0lp9e."; // Example hash from DB
-const enteredPassword = "apD9^y$g"; // Password entered during login
-const enteredPasswordTrimmed = enteredPassword.trim();
-bcrypt.compare(enteredPasswordTrimmed, storedHash, (err, result) => {
-    if (err) {
-        console.error("Error:", err);
-    } else {
-        console.log("Password Match Result:", result ? "✅ Match" : "❌ Mismatch");
+const updateMissingTimestamps = async () => {
+    await mongoose.connect('mongodb://localhost:27017/yourDatabaseName', { useNewUrlParser: true, useUnifiedTopology: true });
+
+    const employees = await Employee.find({ createdAt: { $exists: false } });
+
+    for (let employee of employees) {
+        employee.createdAt = new Date();
+        await employee.save();
     }
-});
 
+    console.log('Timestamps updated successfully!');
+    mongoose.disconnect();
+};
+
+updateMissingTimestamps().catch(console.error);

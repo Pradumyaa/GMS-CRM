@@ -1,13 +1,14 @@
-
-// routes/imageRoutes.js
 import express from 'express';
-import { uploadImage, getImage } from '../controllers/imageController.js';
-import upload from '../config/multerConfig.js';
-import { verifyToken } from '../middleware/auth.js';
+import multer from 'multer';
+import { uploadImage, getImages } from '../controllers/imageController.js';
 
 const router = express.Router();
+const upload = multer({ dest: 'uploads/' }); // Temporarily store files before Cloudinary upload
 
-router.post('/upload', upload.single('images'), uploadImage);
-router.get('/:employeeId/:imageId', getImage);
+// ✅ Upload Route (Uses Multer Middleware)
+router.post('/upload', upload.single('image'), uploadImage);
+
+// ✅ Get Images Route
+router.get('/:employeeId', getImages);
 
 export default router;

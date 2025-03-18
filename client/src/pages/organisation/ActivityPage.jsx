@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 // import Navbar from "../../layout/Navbar";
-import Sidebar from "../../sidebar/Sidebar";
+import Sidebar from "../components/sidebar/Sidebar";
 
 const ActivityAttendance = () => {
   const [attendanceStatus, setAttendanceStatus] = useState("Start Day"); // Example state

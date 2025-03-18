@@ -10,6 +10,27 @@ const AddEmployeeModal = ({
   isEditing,
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Initialize default values when opening the modal
+  useEffect(() => {
+    if (isOpen) {
+      // Ensure proper initialization of employeeData with defaults
+      setEmployeeData(prevData => ({
+        ...prevData,
+        // Explicitly ensure status is set with a default value
+        status: prevData.status || "Active",
+        // Ensure address is properly initialized
+        address: prevData.address || { 
+          street: "", 
+          city: "", 
+          state: "", 
+          zipCode: "", 
+          country: "" 
+        }
+      }));
+    }
+  }, [isOpen, setEmployeeData]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setEmployeeData((prevData) => ({
@@ -17,22 +38,6 @@ const AddEmployeeModal = ({
       [name]: value,
     }));
   };
-
-  useEffect(() => {
-    if (isOpen && isEditing && employeeData) {
-      setEmployeeData({
-        ...employeeData,
-        address: employeeData.address || {
-          street: "",
-          city: "",
-          state: "",
-          zipCode: "",
-          country: "",
-        },
-        status: employeeData.status || "Active",
-      });
-    }
-  }, [isOpen, isEditing]);
 
   // Generate a systematic employee ID based on department and current timestamp
   const generateEmployeeId = () => {
@@ -71,13 +76,19 @@ const AddEmployeeModal = ({
   };
 
   const handleAddressChange = (e) => {
-    setEmployeeData({
-      ...employeeData,
-      address: { ...employeeData.address, [e.target.name]: e.target.value },
-    });
+    const { name, value } = e.target;
+    setEmployeeData(prevData => ({
+      ...prevData,
+      address: { 
+        ...(prevData.address || {}), 
+        [name]: value 
+      }
+    }));
   };
 
   const validateEmployeeData = (data) => {
+    console.log("Validating data:", data);
+    
     const requiredFields = [
       "name",
       "jobTitle",
@@ -87,34 +98,63 @@ const AddEmployeeModal = ({
       "email",
       "status",
     ];
-    const missingFields = requiredFields.filter((field) => !data[field]);
-
+  
+    // Check missing fields
+    const missingFields = requiredFields.filter(
+      (field) => !data[field] || data[field].toString().trim() === ""
+    );
+  
     if (missingFields.length > 0) {
       throw new Error(`Missing required fields: ${missingFields.join(", ")}`);
     }
-    if (isNaN(Number(data.salary)))
-      throw new Error("Salary must be a valid number");
-    if (!/^\+?[\d\s-]{10,}$/.test(data.phoneNumber))
-      throw new Error("Invalid phone number format");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))
-      throw new Error("Invalid email format");
-
+  
+    // Check salary (should be a valid number)
+    if (isNaN(Number(data.salary)) || Number(data.salary) <= 0) {
+      throw new Error("Salary must be a valid positive number.");
+    }
+  
+    // Validate phone number (allows country codes)
+    if (!/^\+?[\d\s-]{10,}$/.test(data.phoneNumber)) {
+      throw new Error("Invalid phone number format.");
+    }
+  
+    // Validate email format
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+      throw new Error("Invalid email format.");
+    }
+  
+    // Ensure address is properly initialized
+    if (!data.address || typeof data.address !== "object") {
+      throw new Error("Address information is missing.");
+    }
+  
+    const addressFields = ["street", "city", "state", "zipCode", "country"];
+    const missingAddressFields = addressFields.filter(
+      (field) => !data.address[field] || data.address[field].toString().trim() === ""
+    );
+  
+    if (missingAddressFields.length > 0) {
+      throw new Error(`Missing address fields: ${missingAddressFields.join(", ")}`);
+    }
+  
     return true;
   };
-
+  
   const formatEmployeeData = (data) => {
     // Generate credentials for new employees
     const credentials = !isEditing
       ? {
           employeeId: generateEmployeeId(),
-          password:generatePassword()
+          password: generatePassword()
         }
       : {};
 
+    // Ensure status is explicitly set
     return {
       ...data,
       ...credentials,
       salary: Number(data.salary),
+      status: data.status || "Active", // Ensure status is set here
       address: {
         street: data.address?.street || "",
         city: data.address?.city || "",
@@ -123,32 +163,28 @@ const AddEmployeeModal = ({
         country: data.address?.country || "",
       },
       images: data.images || [],
-      status: data.status || "Active",
       joiningDate: new Date(),
     };
   };
 
-  // const sendCredentialsEmail = async (email, employeeId, password) => {
-  //   try {
-  //     await axios.post("http://localhost:3000/api/send-credentials", {
-  //       to: email,
-  //       employeeId,
-  //       password,
-  //     });
-  //   } catch (error) {
-  //     console.error("Error sending credentials email:", error);
-  //     throw new Error("Failed to send credentials email");
-  //   }
-  // };
   const handleSave = async () => {
     try {
       setIsSubmitting(true);
-  
+      
+      // Log data before validation for debugging
+      console.log("Employee Data Before Validation:", JSON.stringify(employeeData, null, 2));
+
+      // Ensure status is explicitly set before validation
+      const dataToValidate = {
+        ...employeeData,
+        status: employeeData.status || "Active"
+      };
+
       // Validate employee data
-      validateEmployeeData(employeeData);
+      validateEmployeeData(dataToValidate);
   
       // Format employee data
-      const formattedData = formatEmployeeData(employeeData);
+      const formattedData = formatEmployeeData(dataToValidate);
   
       // Determine the API endpoint and method
       const apiEndpoint = isEditing
@@ -156,6 +192,9 @@ const AddEmployeeModal = ({
         : "http://localhost:3000/api/employees";
       const apiMethod = isEditing ? axios.put : axios.post;
   
+      // Log the data being sent to API for debugging
+      console.log("Sending to API:", JSON.stringify(formattedData, null, 2));
+      
       // Make the API request
       const response = await apiMethod(apiEndpoint, formattedData);
   
@@ -170,19 +209,24 @@ const AddEmployeeModal = ({
       console.error("Error saving employee:", error);
       alert(
         error.response?.data?.message ||
-          error.message ||
-          "Error saving employee."
+        error.message ||
+        "Error saving employee."
       );
     } finally {
       setIsSubmitting(false);
     }
   };
+  
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-opacity-70 backdrop-blur-sm">
       <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-3xl border-2 border-gray-600">
         <h2 className="text-3xl font-semibold mb-6 text-center text-[#5932ea]">
           {isEditing ? "Edit Employee" : "Add Employee"}
         </h2>
+        {/* Add debug info to help troubleshoot */}
+        <div className="mb-4 text-xs text-gray-500">
+          Status: {employeeData.status || "Not set"}
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {/* Basic Information */}
           {[
@@ -220,13 +264,14 @@ const AddEmployeeModal = ({
             className="w-full p-4 border-2 border-gray-400 rounded-lg bg-gray-200 text-black focus:ring-2 focus:ring-[#5932ea] focus:outline-none focus:border-[#5932ea] transition"
           />
 
-          {/* Status Selection */}
+          {/* Status Selection - Make more prominent */}
           <select
             name="status"
             value={employeeData.status || "Active"}
             onChange={handleChange}
             className="w-full p-4 border-2 border-gray-400 rounded-lg bg-gray-200 text-black focus:ring-2 focus:ring-[#5932ea] focus:outline-none focus:border-[#5932ea] transition"
           >
+            <option value="">Select Status</option>
             <option value="Active">Active</option>
             <option value="Inactive">Inactive</option>
           </select>

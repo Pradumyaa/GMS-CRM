@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 const imageSchema = new mongoose.Schema({
     data: Buffer, // Binary data of the image
     contentType: String, // Mime type of the image
-  });
+});
 const employeeSchema = new mongoose.Schema({
     employeeId: {
         type: String,
@@ -69,9 +69,9 @@ const employeeSchema = new mongoose.Schema({
         enum: ['Active', 'Resigned', 'Absconded'],
         default: 'Active'
     },
-    isAdmin:{
-        type:Boolean,
-        default:false
+    isAdmin: {
+        type: Boolean,
+        default: false
     }
 }, {
     timestamps: true

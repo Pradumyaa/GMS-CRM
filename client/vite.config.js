@@ -12,6 +12,7 @@ export default defineConfig({
       buffer: path.resolve('node_modules/buffer/'),
       events: path.resolve('node_modules/events/'),
       util: path.resolve('node_modules/util/'),
+      "@": path.resolve(__dirname, "./src"),
     },
   },
   optimizeDeps: {
