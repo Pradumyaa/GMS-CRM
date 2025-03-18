@@ -32,5 +32,10 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',   // Bind to all network interfaces
     port: process.env.PORT || 4173, // Use Render's PORT variable or fallback to 4173
+  },
+  preview: {
+    host: '0.0.0.0',
+    port: process.env.PORT || 4173,
+    allowedHosts: ['gms-crm.onrender.com'], // ✅ Allow your deployed host
   }
 })
